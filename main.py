@@ -3,13 +3,11 @@ import glob
 from pathlib import Path
 from pprint import pp
 
-import folium
-
 from utils import *
 
 BASE_DIR = Path.home() / "work" / "major" / "SAR Data" / "Level 2 Data EOS04"
 
-product_xml = BASE_DIR / "product.xml"
+band_meta = BASE_DIR / "BAND_META.txt"
 
-coords = get_coords_from_xml(product_xml)
-pp(coords)
+center_lat, center_long = get_scene_center(band_meta)
+print(center_lat, center_long)
