@@ -5,33 +5,24 @@ import math
 import geopy.distance
 from geopy import Point
 
-def get_coords_from_xml(xml_path: Path) -> dict[str, Point]:      
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-
-    corners = root.find("ImageAttributes").find("GeographicInformation").find("MapProjection").find("MapCorners")
-
-    coords = dict()
-
-    for corner in corners:
-        lat = corner.find("Latitude").text
-        long = corner.find("Longitude").text
-        
-        coords[corner.tag] = Point(float(lat), float(long))
-    
-    return coords
-
-
-def get_scene_center(band_meta_path: Path) -> Point:
+def get_coords(base_meta_path: Path) -> dict[str, Point]:      
     meta = dict()
-    contents = open(band_meta_path, "r").read().split("\n")
+    coords = dict()
+    
+    contents = open(base_meta_path, "r").read().split("\n")
 
     for line in contents:
         split = line.split("=")
         if len(split) == 2:
             meta[split[0]] = split[1]
     
-    return Point(float(meta['SceneCenterLat']), float(meta['SceneCenterLon']))
+    coords['center'] = Point(meta['SceneCenterLat'], meta['SceneCenterLon'])
+    coords['upper_left'] = Point(meta['ImageULLat'], meta['ImageULLon'])
+    coords['upper_right'] = Point(meta['ImageURLat'], meta['ImageURLon'])
+    coords['lower_left'] = Point(meta['ImageLLLat'], meta['ImageLLLon'])
+    coords['lower_right'] = Point(meta['ImageLRLat'], meta['ImageLRLon'])
+
+    return coords
 
 
 def get_bounding_box_coordinates(center: Point, half_side_distance: int) -> dict[str, Point]:
