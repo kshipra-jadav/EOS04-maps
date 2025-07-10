@@ -3,8 +3,9 @@ from pathlib import Path
 import math
 
 import geopy.distance
+from geopy import Point
 
-def get_coords_from_xml(xml_path: Path) -> dict[dict[float, float]]:      
+def get_coords_from_xml(xml_path: Path) -> dict[str, Point]:      
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
@@ -16,15 +17,12 @@ def get_coords_from_xml(xml_path: Path) -> dict[dict[float, float]]:
         lat = corner.find("Latitude").text
         long = corner.find("Longitude").text
         
-        coords[corner.tag] = {
-            "lat": float(lat),
-            "long": float(long)
-        }
+        coords[corner.tag] = Point(float(lat), float(long))
     
     return coords
 
 
-def get_scene_center(band_meta_path: Path) -> tuple[float, float]:
+def get_scene_center(band_meta_path: Path) -> Point:
     meta = dict()
     contents = open(band_meta_path, "r").read().split("\n")
 
@@ -33,23 +31,23 @@ def get_scene_center(band_meta_path: Path) -> tuple[float, float]:
         if len(split) == 2:
             meta[split[0]] = split[1]
     
-    return float(meta['SceneCenterLat']), float(meta['SceneCenterLon'])
+    return Point(float(meta['SceneCenterLat']), float(meta['SceneCenterLon']))
 
 
-def get_bounding_box_coordinates(center: tuple[float, float], north_distance: int, south_distance: int, east_distance: int, west_distance: int) -> dict[dict[float, float]]:
+def get_bounding_box_coordinates(center: Point, half_side_distance: int) -> dict[str, Point]:
     NORTH_BEARING = 0
     EAST_BEARING = 90
     SOUTH_BEARING = 180
     WEST_BEARING = 270
 
-    north = geopy.distance.distance(north_distance).destination(point=center, bearing=NORTH_BEARING)
-    upper_left = geopy.distance.distance(west_distance).destination(point=north, bearing=WEST_BEARING)
+    north = geopy.distance.distance(half_side_distance).destination(point=center, bearing=NORTH_BEARING)
+    upper_left = geopy.distance.distance(half_side_distance).destination(point=north, bearing=WEST_BEARING)
 
-    south = geopy.distance.distance(south_distance).destination(point=center, bearing=SOUTH_BEARING)
-    lower_right = geopy.distance.distance(east_distance).destination(point=south, bearing=EAST_BEARING)
+    south = geopy.distance.distance(half_side_distance).destination(point=center, bearing=SOUTH_BEARING)
+    lower_right = geopy.distance.distance(half_side_distance).destination(point=south, bearing=EAST_BEARING)
 
 
     return {
-        "upper_left": (upper_left.latitude, upper_left.longitude),
-        "lower_right": (lower_right.latitude, lower_right.longitude),
+        "upper_left": upper_left,
+        "lower_right": lower_right,
     }
