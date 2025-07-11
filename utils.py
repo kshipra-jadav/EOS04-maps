@@ -1,9 +1,13 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import math
+from typing import Optional
 
 import geopy.distance
 from geopy import Point
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
+import geopandas as gpd
+import matplotlib.pyplot as plt
 
 NORTH_BEARING = 0
 EAST_BEARING = 90
@@ -61,11 +65,36 @@ def get_bounding_box_coordinates(center: Point, half_side_distance: int) -> dict
 
 
 def check_bounding_boxes(parent: dict[str, Point], child: dict[str, Point], half_side_distance: int):
+
+    def create_polygon(ul: Point, lr: Point, ur: Point | None = None, ll: Point | None = None) -> Polygon:
+        if ur is None and ll is None:
+            ur = Point(ul.latitude, lr.longitude)
+            ll = Point(lr.latitude, ul.longitude)
+        
+
+        return Polygon([
+            (ll.longitude, ll.latitude),
+            (lr.longitude, ll.latitude),
+            (ur.longitude, ur.latitude),
+            (ul.longitude, ul.latitude),
+            (ll.longitude, ll.latitude)
+        ])
     
-    ur = geopy.distance.distance(half_side_distance * 2).destination(point=child['upper_left'], bearing=EAST_BEARING)
-    ll = geopy.distance.distance(half_side_distance * 2).destination(point=child['lower_right'], bearing=WEST_BEARING)
+    child_polygon = create_polygon(child['upper_left'], child['lower_right'])
+    parent_polygon = create_polygon(ul=parent['upper_left'], ur=parent['upper_right'], lr=parent['lower_right'], ll=parent['lower_left'])
 
-    child['upper_right'] = ur
-    child['lower_left'] = ll
+    def plot_polygons(parent_poly, child_poly):
+        fig, ax = plt.subplots()
+        xs, ys = parent_poly.exterior.xy
+        ax.plot(xs, ys, 'r-', label='Parent (Tilted)')
+        
+        xs, ys = child_poly.exterior.xy
+        ax.plot(xs, ys, 'g--', label='Child (Axis-aligned)')
 
-    return child
+        ax.set_aspect('equal')
+        plt.legend()
+        plt.show()
+
+
+    print(parent_polygon.covers(child_polygon))
+    plot_polygons(parent_polygon, child_polygon)

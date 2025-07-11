@@ -7,9 +7,8 @@ from constants import *
 
 coords = get_coords(BAND_META_PATH)
 
-user_point = Point(23.2156, 72.6369)
+user_point = Point(22.3039, 70.8022)
 
 bbox = get_bounding_box_coordinates(user_point, 25)
 
-pp(coords)
-pp(bbox)
+check_bounding_boxes(parent=coords, child=bbox, half_side_distance=25)
