@@ -5,16 +5,21 @@ import math
 import geopy.distance
 from geopy import Point
 
-def get_coords(base_meta_path: Path) -> dict[str, Point]:      
+def parse_band_meta(band_meta_path: Path) -> dict[str, str]:
     meta = dict()
-    coords = dict()
-    
-    contents = open(base_meta_path, "r").read().split("\n")
 
-    for line in contents:
+    content = open(band_meta_path, "r").read().split("\n")
+
+    for line in content:
         split = line.split("=")
         if len(split) == 2:
             meta[split[0]] = split[1]
+    
+    return meta
+
+def get_coords(band_meta_path: Path) -> dict[str, Point]:
+    meta = parse_band_meta(band_meta_path)
+    coords = dict()
     
     coords['center'] = Point(meta['SceneCenterLat'], meta['SceneCenterLon'])
     coords['upper_left'] = Point(meta['ImageULLat'], meta['ImageULLon'])
@@ -23,6 +28,15 @@ def get_coords(base_meta_path: Path) -> dict[str, Point]:
     coords['lower_right'] = Point(meta['ImageLRLat'], meta['ImageLRLon'])
 
     return coords
+
+
+def get_calibration_constants(band_meta_path: Path) -> dict[str, float]:
+    meta = parse_band_meta(band_meta_path)
+
+    return {
+        "HH": float(meta['Calibration_Constant_HH']),
+        "HV": float(meta['Calibration_Constant_HV'])
+    }
 
 
 def get_bounding_box_coordinates(center: Point, half_side_distance: int) -> dict[str, Point]:
