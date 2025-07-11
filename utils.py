@@ -5,6 +5,12 @@ import math
 import geopy.distance
 from geopy import Point
 
+NORTH_BEARING = 0
+EAST_BEARING = 90
+SOUTH_BEARING = 180
+WEST_BEARING = 270
+
+
 def parse_band_meta(band_meta_path: Path) -> dict[str, str]:
     meta = dict()
 
@@ -16,6 +22,7 @@ def parse_band_meta(band_meta_path: Path) -> dict[str, str]:
             meta[split[0]] = split[1]
     
     return meta
+
 
 def get_coords(band_meta_path: Path) -> dict[str, Point]:
     meta = parse_band_meta(band_meta_path)
@@ -40,11 +47,6 @@ def get_calibration_constants(band_meta_path: Path) -> dict[str, float]:
 
 
 def get_bounding_box_coordinates(center: Point, half_side_distance: int) -> dict[str, Point]:
-    NORTH_BEARING = 0
-    EAST_BEARING = 90
-    SOUTH_BEARING = 180
-    WEST_BEARING = 270
-
     north = geopy.distance.distance(half_side_distance).destination(point=center, bearing=NORTH_BEARING)
     upper_left = geopy.distance.distance(half_side_distance).destination(point=north, bearing=WEST_BEARING)
 
@@ -56,3 +58,14 @@ def get_bounding_box_coordinates(center: Point, half_side_distance: int) -> dict
         "upper_left": upper_left,
         "lower_right": lower_right,
     }
+
+
+def check_bounding_boxes(parent: dict[str, Point], child: dict[str, Point], half_side_distance: int):
+    
+    ur = geopy.distance.distance(half_side_distance * 2).destination(point=child['upper_left'], bearing=EAST_BEARING)
+    ll = geopy.distance.distance(half_side_distance * 2).destination(point=child['lower_right'], bearing=WEST_BEARING)
+
+    child['upper_right'] = ur
+    child['lower_left'] = ll
+
+    return child
