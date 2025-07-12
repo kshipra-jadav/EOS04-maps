@@ -83,18 +83,5 @@ def check_bounding_boxes(parent: dict[str, Point], child: dict[str, Point], half
     child_polygon = create_polygon(child['upper_left'], child['lower_right'])
     parent_polygon = create_polygon(ul=parent['upper_left'], ur=parent['upper_right'], lr=parent['lower_right'], ll=parent['lower_left'])
 
-    def plot_polygons(parent_poly, child_poly):
-        fig, ax = plt.subplots()
-        xs, ys = parent_poly.exterior.xy
-        ax.plot(xs, ys, 'r-', label='Parent (Tilted)')
-        
-        xs, ys = child_poly.exterior.xy
-        ax.plot(xs, ys, 'g--', label='Child (Axis-aligned)')
 
-        ax.set_aspect('equal')
-        plt.legend()
-        plt.show()
-
-
-    print(parent_polygon.covers(child_polygon))
-    plot_polygons(parent_polygon, child_polygon)
+    return parent_polygon.covers(child_polygon)

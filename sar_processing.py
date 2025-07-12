@@ -7,6 +7,8 @@ from utils import *
 from constants import *
 
 import rasterio
+from rasterio.transform import xy
+from rasterio.warp import transform
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
@@ -74,8 +76,39 @@ def compute_sigma_naught(DN_path: Path, KBeta: float, type: Literal['HH', 'HV'],
     return sigma0
 
 
+def get_latlon_from_raster(path):
+    with rasterio.open(path) as src:
+        height, width = src.height, src.width
+        transform_matrix = src.transform
+
+        # Create grid of row/col indices
+        rows, cols = np.meshgrid(np.arange(height), np.arange(width), indexing='ij')
+
+        # Get projected X, Y (easting, northing in meters)
+        xs, ys = xy(transform_matrix, rows, cols)
+
+        # Flatten to 1D
+        xs_flat = np.array(xs).flatten()
+        ys_flat = np.array(ys).flatten()
+
+        # Convert to lat/lon
+        lons, lats = transform(src.crs, "EPSG:4326", xs_flat, ys_flat)
+
+        # Reshape back to 2D grid
+        lon = np.array(lons).reshape((height, width))
+        lat = np.array(lats).reshape((height, width))
+
+    return lat, lon
 
 
-sigma0_hh = compute_sigma_naught(HH_PATH, calibration_constants['HH'], type='HH', show_metrics=True)
-sigma0_hv = compute_sigma_naught(HV_PATH, calibration_constants['HV'], type='HV', show_metrics=True)
+def main():
+    # sigma0_hh = compute_sigma_naught(HH_PATH, calibration_constants['HH'], type='HH', show_metrics=True)
+    # sigma0_hv = compute_sigma_naught(HV_PATH, calibration_constants['HV'], type='HV', show_metrics=True)
 
+    lat_hh, lon_hh = get_latlon_from_raster(HH_PATH)
+
+    print(lat_hh, lon_hh)
+
+
+if __name__ == '__main__':
+    main()
