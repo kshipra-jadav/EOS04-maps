@@ -3,20 +3,22 @@ import os
 import time
 from typing import Literal
 
+import rasterio.io
+
 from utils import *
 from constants import *
 
 import rasterio
 from rasterio.transform import xy
 from rasterio.warp import transform
+from rasterio.windows import from_bounds
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
-
+from geopy import Point
 
 calibration_constants = get_calibration_constants(BAND_META_PATH)
 
-
+DEST_CRS = "EPSG:4326"
 
 def compute_sigma_naught(DN_path: Path, KBeta: float, type: Literal['HH', 'HV'], show_metrics=False):
     '''
@@ -76,29 +78,31 @@ def compute_sigma_naught(DN_path: Path, KBeta: float, type: Literal['HH', 'HV'],
     return sigma0
 
 
-def get_latlon_from_raster(path):
-    with rasterio.open(path) as src:
-        height, width = src.height, src.width
-        transform_matrix = src.transform
+def crop_parent_raster_to_child(parent_raster_path: Path, child_bbox: dict[str, Point]):
+    parent_raster = rasterio.open(parent_raster_path)
 
-        # Create grid of row/col indices
-        rows, cols = np.meshgrid(np.arange(height), np.arange(width), indexing='ij')
+    ul_child, lr_child = child_bbox['upper_left'], child_bbox['lower_right']
 
-        # Get projected X, Y (easting, northing in meters)
-        xs, ys = xy(transform_matrix, rows, cols)
+    # here, the CRS values for parent and child would be different.
+    # hence, we will be converting the child who are in lats, lons to the parent's CRS which is in meteres [easting, northing, ...
+    # and we get a meters reprerentation of the child's bounding box
+    xs, ys = transform(DEST_CRS, parent_raster.crs, (ul_child.longitude, lr_child.longitude), (ul_child.latitude, lr_child.latitude))
 
-        # Flatten to 1D
-        xs_flat = np.array(xs).flatten()
-        ys_flat = np.array(ys).flatten()
+    # now we create a window using the same meters representation of the child's bounding box
+    window = from_bounds(
+        left=min(xs),
+        right=max(xs),
+        bottom=min(ys),
+        top=max(ys),
+        transform=parent_raster.transform
+    )
 
-        # Convert to lat/lon
-        lons, lats = transform(src.crs, "EPSG:4326", xs_flat, ys_flat)
+    # now we read from the parent raster but only confined to the window that we created earlier
+    data = parent_raster.read(1, window=window)
 
-        # Reshape back to 2D grid
-        lon = np.array(lons).reshape((height, width))
-        lat = np.array(lats).reshape((height, width))
+    return data
 
-    return lat, lon
+
 
 
 def main():
