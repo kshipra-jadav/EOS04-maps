@@ -1,13 +1,11 @@
-import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Optional
+from functools import wraps
+import time
+
 
 import geopy.distance
 from geopy import Point
 from shapely.geometry import Polygon
-from shapely.ops import unary_union
-import geopandas as gpd
-import matplotlib.pyplot as plt
 
 NORTH_BEARING = 0
 EAST_BEARING = 90
@@ -85,3 +83,13 @@ def check_bounding_boxes(parent: dict[str, Point], child: dict[str, Point], half
 
 
     return parent_polygon.covers(child_polygon)
+
+def timeit(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        end = time.perf_counter()
+        print(f"[TIMER] {func.__name__!r} took {end - start:.4f} seconds")
+        return result
+    return wrapper
