@@ -22,7 +22,7 @@ calibration_constants = get_calibration_constants(BAND_META_PATH)
 DEST_CRS = "EPSG:4326"
 
 @timeit
-def compute_sigma_naught(DN: np.ndarray, lia: np.ndarray, KBeta: float, type: Literal['HH', 'HV']):
+def compute_sigma_naught(DN: np.ndarray, lia: np.ndarray, KBeta: float):
     '''
     sigma_naught = 10 * log_10(DN^2) + 10 * log_10(sin \theta_inc) - K_beta
 
@@ -33,6 +33,9 @@ def compute_sigma_naught(DN: np.ndarray, lia: np.ndarray, KBeta: float, type: Li
     K_beta -> calibration constant
 
     '''
+    DN = DN.astype(np.float32)
+    lia = lia.astype(np.float32)
+
     theta_rad = np.radians(lia)
 
     mask_valid = (DN > 0) & (lia > 0) & (lia < 90)
@@ -42,8 +45,8 @@ def compute_sigma_naught(DN: np.ndarray, lia: np.ndarray, KBeta: float, type: Li
     sigma0 = np.full_like(DN, np.nan, dtype=float)
 
     sigma0[mask_valid] = (
-        10 * np.log10((DN[mask_valid] ** 2) + epsilon)+
-        10 * np.log10(np.sin(theta_rad[mask_valid]) + epsilon) - 
+        10 * np.log10((DN[mask_valid] ** 2)) +
+        10 * np.log10(np.sin(theta_rad[mask_valid])) - 
         KBeta
     )
 
@@ -140,8 +143,8 @@ def main():
     cropped_lia, lia_transform = crop_parent_raster_to_child(lia, child_bbox)
 
 
-    sigma0_hh = compute_sigma_naught(cropped_hh, cropped_lia, calibration_constants['HH'], type='HH')
-    sigma0_hv = compute_sigma_naught(cropped_hv, cropped_lia, calibration_constants['HV'], type='HV')
+    sigma0_hh = compute_sigma_naught(cropped_hh, cropped_lia, calibration_constants['HH'])
+    sigma0_hv = compute_sigma_naught(cropped_hv, cropped_lia, calibration_constants['HV'])
     lats, lons = get_latlon_from_raster(cropped_hh, hh_transform, hh.crs)
 
     print(f"{len(lats)=},\n{len(lons)=},\n{sigma0_hh.shape=},\n{sigma0_hv.shape=},\n{cropped_hh.shape=},\n{cropped_hv.shape=},\n{cropped_lia.shape=}", sep="\n")

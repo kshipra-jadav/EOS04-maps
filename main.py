@@ -1,14 +1,29 @@
-from utils import *
-from pathlib import Path
-from pprint import pp
-from geopy import Point
-
+import matplotlib.pyplot as plt
+ 
 from constants import *
+from utils import *
+from sar_processing import *
 
-coords = get_coords(BAND_META_PATH)
+import rasterio
 
-user_point = Point(22.3039, 70.8022)
+calibration_constants = get_calibration_constants(BAND_META_PATH)
 
-bbox = get_bounding_box_coordinates(user_point, 25)
 
-check_bounding_boxes(parent=coords, child=bbox, half_side_distance=25)
+
+
+sigma0_hh = compute_sigma_naught(rasterio.open(HH_PATH).read(1), rasterio.open(LIA_PATH).read(1), calibration_constants['HH'])
+sigma0_hv = compute_sigma_naught(rasterio.open(HV_PATH).read(1), rasterio.open(LIA_PATH).read(1), calibration_constants['HV'])
+
+
+plt.figure(figsize=(10, 8))
+plt.title("Sigma Naught HH")
+plt.imshow(sigma0_hh, cmap='gray')
+plt.axis('off')
+plt.savefig("/home/faafdaa/Pictures/major/sigma_naught_hh.png", bbox_inches='tight', pad_inches=0.1)
+
+plt.figure(figsize=(10, 8))
+plt.title("Sigma Naught HV")
+plt.imshow(sigma0_hv, cmap='gray')
+plt.axis('off')
+plt.savefig("/home/faafdaa/Pictures/major/sigma_naught_hv.png", bbox_inches='tight', pad_inches=0.1)
+
